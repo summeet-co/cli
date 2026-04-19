@@ -134,7 +134,6 @@ Authenticated user profile.
 
 ## TODO
 
-- Implement `/search` endpoint for message full-text search
 - Add support for conversation custom attributes
 - Implement webhooks for real-time updates
 - Add bulk action endpoints (mark multiple as read, etc.)
