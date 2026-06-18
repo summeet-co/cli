@@ -94,6 +94,31 @@ func TestSearchOnlyFiltersToSingleBucket(t *testing.T) {
 	}
 }
 
+func TestSearchOnlyRestrictsJSONToBucket(t *testing.T) {
+	app, out := newSearchTestApp(t, &CLI{Output: "json"}, nil)
+
+	if err := (&SearchCmd{Query: "refund", Only: "messages", Page: 1}).Run(app); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	var got struct {
+		Payload struct {
+			Conversations []json.RawMessage `json:"conversations"`
+			Contacts      []json.RawMessage `json:"contacts"`
+			Messages      []json.RawMessage `json:"messages"`
+			Articles      []json.RawMessage `json:"articles"`
+		} `json:"payload"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &got); err != nil {
+		t.Fatalf("output is not JSON: %v\n%s", err, out.String())
+	}
+	if len(got.Payload.Messages) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(got.Payload.Messages))
+	}
+	if len(got.Payload.Conversations) != 0 || len(got.Payload.Contacts) != 0 || len(got.Payload.Articles) != 0 {
+		t.Fatalf("--only messages must drop other buckets in JSON too: %#v", got.Payload)
+	}
+}
+
 func TestSearchJSONOutput(t *testing.T) {
 	app, out := newSearchTestApp(t, &CLI{Output: "json"}, nil)
 

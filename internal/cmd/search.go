@@ -37,7 +37,7 @@ func (c *SearchCmd) Run(app *App) error {
 	}
 
 	if app.Printer.Format == "json" && !app.Printer.Quiet {
-		app.Printer.PrintJSON(resp)
+		app.Printer.PrintJSON(payloadOnly(resp, c.Only))
 		return nil
 	}
 
@@ -86,6 +86,27 @@ func printSearchText(app *App, query string, resp *sdk.SearchResponse, only stri
 		printArticleRows(app, p.Articles)
 	}
 	return nil
+}
+
+// payloadOnly returns a response restricted to a single bucket so that --only is
+// honored consistently across every output format (text, csv, quiet, and json).
+// An empty bucket returns the response unchanged.
+func payloadOnly(resp *sdk.SearchResponse, only string) *sdk.SearchResponse {
+	if only == "" {
+		return resp
+	}
+	out := &sdk.SearchResponse{}
+	switch only {
+	case "conversations":
+		out.Payload.Conversations = resp.Payload.Conversations
+	case "contacts":
+		out.Payload.Contacts = resp.Payload.Contacts
+	case "messages":
+		out.Payload.Messages = resp.Payload.Messages
+	case "articles":
+		out.Payload.Articles = resp.Payload.Articles
+	}
+	return out
 }
 
 func printSearchSection(app *App, resp *sdk.SearchResponse, only string, prefixIDs bool) error {
