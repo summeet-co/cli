@@ -17,7 +17,7 @@ type SearchCmd struct {
 	After  string `help:"Lower bound (inclusive). Date 2006-01-02, datetime 2006-01-02T15:04, RFC3339, or epoch seconds. Bare dates use --tz."`
 	Before string `help:"Upper bound (inclusive). Same formats as --after."`
 	On     string `help:"Single day shorthand: --after 00:00:00 + --before 23:59:59 of this date. Mutually exclusive with --after/--before."`
-	TZ     string `name:"tz" default:"Australia/Sydney" help:"Timezone for interpreting bare dates in --after/--before/--on. For explicit UTC, pass epoch seconds or an RFC3339 timestamp with a 'Z' suffix."`
+	TZ     string `name:"tz" default:"UTC" help:"Timezone for interpreting bare dates in --after/--before/--on (default UTC; accepts IANA names like Australia/Sydney). Epoch seconds and RFC3339 'Z' timestamps are always UTC."`
 }
 
 func (c *SearchCmd) Run(app *App) error {
