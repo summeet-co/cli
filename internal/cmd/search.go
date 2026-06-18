@@ -17,7 +17,7 @@ type SearchCmd struct {
 	After  string `help:"Lower bound (inclusive). Date 2006-01-02, datetime 2006-01-02T15:04, RFC3339, or epoch seconds. Bare dates use --tz."`
 	Before string `help:"Upper bound (inclusive). Same formats as --after."`
 	On     string `help:"Single day shorthand: --after 00:00:00 + --before 23:59:59 of this date. Mutually exclusive with --after/--before."`
-	TZ     string `name:"tz" default:"Australia/Sydney" help:"Timezone for bare dates in --after/--before/--on. Default Australia/Sydney (matches Slack #reviews & Chatwoot). For explicit UTC pass epoch seconds or RFC3339 with 'Z'."`
+	TZ     string `name:"tz" default:"Australia/Sydney" help:"Timezone for interpreting bare dates in --after/--before/--on. For explicit UTC, pass epoch seconds or an RFC3339 timestamp with a 'Z' suffix."`
 }
 
 func (c *SearchCmd) Run(app *App) error {
@@ -64,25 +64,25 @@ func printSearchText(app *App, query string, resp *sdk.SearchResponse, only stri
 	}
 
 	if total == 0 {
-		fmt.Printf("No results for %q.\n", query)
+		fmt.Fprintf(app.Printer.Writer, "No results for %q.\n", query)
 		return nil
 	}
 
 	first := true
 	if len(p.Conversations) > 0 {
-		first = printSectionHeader(first, "CONVERSATIONS")
+		first = printSectionHeader(app, first, "CONVERSATIONS")
 		printConversationRows(app, p.Conversations)
 	}
 	if len(p.Contacts) > 0 {
-		first = printSectionHeader(first, "CONTACTS")
+		first = printSectionHeader(app, first, "CONTACTS")
 		printContactRows(app, p.Contacts)
 	}
 	if len(p.Messages) > 0 {
-		first = printSectionHeader(first, "MESSAGES")
+		first = printSectionHeader(app, first, "MESSAGES")
 		printMessageRows(app, p.Messages)
 	}
 	if len(p.Articles) > 0 {
-		_ = printSectionHeader(first, "ARTICLES")
+		_ = printSectionHeader(app, first, "ARTICLES")
 		printArticleRows(app, p.Articles)
 	}
 	return nil
@@ -93,25 +93,25 @@ func printSearchSection(app *App, resp *sdk.SearchResponse, only string, prefixI
 	switch only {
 	case "conversations":
 		if len(resp.Payload.Conversations) == 0 {
-			fmt.Println("No conversations found.")
+			fmt.Fprintln(app.Printer.Writer, "No conversations found.")
 			return nil
 		}
 		printConversationRows(app, resp.Payload.Conversations)
 	case "contacts":
 		if len(resp.Payload.Contacts) == 0 {
-			fmt.Println("No contacts found.")
+			fmt.Fprintln(app.Printer.Writer, "No contacts found.")
 			return nil
 		}
 		printContactRows(app, resp.Payload.Contacts)
 	case "messages":
 		if len(resp.Payload.Messages) == 0 {
-			fmt.Println("No messages found.")
+			fmt.Fprintln(app.Printer.Writer, "No messages found.")
 			return nil
 		}
 		printMessageRows(app, resp.Payload.Messages)
 	case "articles":
 		if len(resp.Payload.Articles) == 0 {
-			fmt.Println("No articles found.")
+			fmt.Fprintln(app.Printer.Writer, "No articles found.")
 			return nil
 		}
 		printArticleRows(app, resp.Payload.Articles)
@@ -164,11 +164,11 @@ func printSearchQuiet(app *App, resp *sdk.SearchResponse, only string) error {
 	return nil
 }
 
-func printSectionHeader(first bool, title string) bool {
+func printSectionHeader(app *App, first bool, title string) bool {
 	if !first {
-		fmt.Println()
+		fmt.Fprintln(app.Printer.Writer)
 	}
-	fmt.Println(title)
+	fmt.Fprintln(app.Printer.Writer, title)
 	return false
 }
 
