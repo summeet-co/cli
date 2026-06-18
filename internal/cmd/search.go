@@ -64,7 +64,7 @@ func printSearchText(app *App, query string, resp *sdk.SearchResponse, only stri
 	}
 
 	if total == 0 {
-		fmt.Fprintf(app.Printer.Writer, "No results for %q.\n", query)
+		_, _ = fmt.Fprintf(app.Printer.Writer, "No results for %q.\n", query)
 		return nil
 	}
 
@@ -114,25 +114,25 @@ func printSearchSection(app *App, resp *sdk.SearchResponse, only string, prefixI
 	switch only {
 	case "conversations":
 		if len(resp.Payload.Conversations) == 0 {
-			fmt.Fprintln(app.Printer.Writer, "No conversations found.")
+			_, _ = fmt.Fprintln(app.Printer.Writer, "No conversations found.")
 			return nil
 		}
 		printConversationRows(app, resp.Payload.Conversations)
 	case "contacts":
 		if len(resp.Payload.Contacts) == 0 {
-			fmt.Fprintln(app.Printer.Writer, "No contacts found.")
+			_, _ = fmt.Fprintln(app.Printer.Writer, "No contacts found.")
 			return nil
 		}
 		printContactRows(app, resp.Payload.Contacts)
 	case "messages":
 		if len(resp.Payload.Messages) == 0 {
-			fmt.Fprintln(app.Printer.Writer, "No messages found.")
+			_, _ = fmt.Fprintln(app.Printer.Writer, "No messages found.")
 			return nil
 		}
 		printMessageRows(app, resp.Payload.Messages)
 	case "articles":
 		if len(resp.Payload.Articles) == 0 {
-			fmt.Fprintln(app.Printer.Writer, "No articles found.")
+			_, _ = fmt.Fprintln(app.Printer.Writer, "No articles found.")
 			return nil
 		}
 		printArticleRows(app, resp.Payload.Articles)
@@ -150,19 +150,19 @@ func printSearchQuiet(app *App, resp *sdk.SearchResponse, only string) error {
 		switch only {
 		case "conversations":
 			for _, c := range p.Conversations {
-				fmt.Fprintln(w, c.ID)
+				_, _ = fmt.Fprintln(w, c.ID)
 			}
 		case "contacts":
 			for _, c := range p.Contacts {
-				fmt.Fprintln(w, c.ID)
+				_, _ = fmt.Fprintln(w, c.ID)
 			}
 		case "messages":
 			for _, m := range p.Messages {
-				fmt.Fprintln(w, m.ID)
+				_, _ = fmt.Fprintln(w, m.ID)
 			}
 		case "articles":
 			for _, a := range p.Articles {
-				fmt.Fprintln(w, a.ID)
+				_, _ = fmt.Fprintln(w, a.ID)
 			}
 		default:
 			return fmt.Errorf("unknown bucket: %q", only)
@@ -171,25 +171,25 @@ func printSearchQuiet(app *App, resp *sdk.SearchResponse, only string) error {
 	}
 
 	for _, c := range p.Conversations {
-		fmt.Fprintf(w, "conversation:%d\n", c.ID)
+		_, _ = fmt.Fprintf(w, "conversation:%d\n", c.ID)
 	}
 	for _, c := range p.Contacts {
-		fmt.Fprintf(w, "contact:%d\n", c.ID)
+		_, _ = fmt.Fprintf(w, "contact:%d\n", c.ID)
 	}
 	for _, m := range p.Messages {
-		fmt.Fprintf(w, "message:%d\n", m.ID)
+		_, _ = fmt.Fprintf(w, "message:%d\n", m.ID)
 	}
 	for _, a := range p.Articles {
-		fmt.Fprintf(w, "article:%d\n", a.ID)
+		_, _ = fmt.Fprintf(w, "article:%d\n", a.ID)
 	}
 	return nil
 }
 
 func printSectionHeader(app *App, first bool, title string) bool {
 	if !first {
-		fmt.Fprintln(app.Printer.Writer)
+		_, _ = fmt.Fprintln(app.Printer.Writer)
 	}
-	fmt.Fprintln(app.Printer.Writer, title)
+	_, _ = fmt.Fprintln(app.Printer.Writer, title)
 	return false
 }
 
@@ -311,7 +311,7 @@ func (c *SearchCmd) timeBounds() (since, until int64, err error) {
 		return 0, 0, fmt.Errorf("--after is later than --before")
 	}
 	if cutoff := time.Now().Add(-90 * 24 * time.Hour).Unix(); until > 0 && until < cutoff {
-		fmt.Fprintln(os.Stderr, "warning: window is entirely older than ~90 days; Chatwoot search is server-capped to the last ~90 days, results may be empty or widened.")
+		_, _ = fmt.Fprintln(os.Stderr, "warning: window is entirely older than ~90 days; Chatwoot search is server-capped to the last ~90 days, results may be empty or widened.")
 	}
 	return since, until, nil
 }
