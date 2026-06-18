@@ -55,6 +55,10 @@ chatwoot conv 123 priority urgent              # urgent | high | medium | low | 
 chatwoot contacts --search "john"
 chatwoot contact 456 conversations
 
+chatwoot search "refund"                       # Global search: conversations, contacts, messages, articles
+chatwoot search "refund" --only messages       # Restrict to one bucket
+chatwoot search "refund" --after 2026-06-01 --before 2026-06-07   # Date range (needs account advanced_search)
+
 chatwoot inboxes / agents / labels / teams     # List
 chatwoot me                                    # Your profile
 

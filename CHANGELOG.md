@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Global `search` command across conversations, contacts, messages, and help-center articles, with `--only` to restrict the output to a single bucket.
+- Date-range filtering for `search` via `--after`/`--before`/`--on` (and `--tz` for bare dates); the server applies the window when the account has the `advanced_search` feature enabled.
+
 ### Changed
 
 ### Fixed
