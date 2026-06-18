@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/chatwoot/cli/internal/config"
 )
@@ -199,5 +201,27 @@ func TestSearchNoResults(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), `No results for "nothing"`) {
 		t.Fatalf("unexpected no-results output: %s", out.String())
+	}
+}
+
+func TestSearchDateRangeSendsSinceAndUntil(t *testing.T) {
+	var since, until string
+	app, _ := newSearchTestApp(t, &CLI{Output: "json"}, func(r *http.Request) {
+		since = r.URL.Query().Get("since")
+		until = r.URL.Query().Get("until")
+	})
+
+	cmd := &SearchCmd{Query: "ada", Page: 1, After: "2026-06-01", Before: "2026-06-02", TZ: "UTC"}
+	if err := cmd.Run(app); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	// bare --after -> 00:00:00 of the day; bare --before -> 23:59:59 of the day, in --tz.
+	wantSince := strconv.FormatInt(time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC).Unix(), 10)
+	wantUntil := strconv.FormatInt(time.Date(2026, 6, 2, 23, 59, 59, 0, time.UTC).Unix(), 10)
+	if since != wantSince {
+		t.Errorf("since = %q, want %q (2026-06-01Z start)", since, wantSince)
+	}
+	if until != wantUntil {
+		t.Errorf("until = %q, want %q (2026-06-02Z end)", until, wantUntil)
 	}
 }

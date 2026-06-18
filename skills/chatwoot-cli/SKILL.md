@@ -122,7 +122,7 @@ chatwoot convs --help         # filters for the list command
 | `conv <id> contact`              | View the contact (sender) for the conversation    |
 | `contacts`                       | List/search contacts                              |
 | `contact <id>` / `<id> conversations` | View a contact / list their conversations    |
-| `search <q> [--only X]`          | Global search across conversations, contacts, messages, articles (`--only` restricts to one bucket) |
+| `search <q> [--only X]`          | Global search across conversations, contacts, messages, articles (`--only` restricts to one bucket; `--after`/`--before`/`--on` filter by date) |
 | `inboxes` / `inbox <id>`         | List inboxes / view one                           |
 | `agents` / `labels` / `teams`    | List account-level resources                      |
 | `hcs`                            | List help centers                                 |

@@ -2,22 +2,35 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/chatwoot/cli/internal/sdk"
 )
 
 type SearchCmd struct {
-	Query string `arg:"" help:"Search query."`
-	Page  int    `short:"p" default:"1" help:"Page number (applies to all result buckets)."`
-	Only  string `help:"Restrict to one bucket: conversations, contacts, messages, or articles." enum:",conversations,contacts,messages,articles" default:""`
+	Query  string `arg:"" help:"Search query."`
+	Page   int    `short:"p" default:"1" help:"Page number (applies to all result buckets)."`
+	Only   string `help:"Restrict to one bucket: conversations, contacts, messages, or articles." enum:",conversations,contacts,messages,articles" default:""`
+	After  string `help:"Lower bound (inclusive). Date 2006-01-02, datetime 2006-01-02T15:04, RFC3339, or epoch seconds. Bare dates use --tz."`
+	Before string `help:"Upper bound (inclusive). Same formats as --after."`
+	On     string `help:"Single day shorthand: --after 00:00:00 + --before 23:59:59 of this date. Mutually exclusive with --after/--before."`
+	TZ     string `name:"tz" default:"UTC" help:"Timezone for interpreting bare dates in --after/--before/--on (default UTC; accepts IANA names like Australia/Sydney). Epoch seconds and RFC3339 'Z' timestamps are always UTC."`
 }
 
 func (c *SearchCmd) Run(app *App) error {
+	since, until, err := c.timeBounds()
+	if err != nil {
+		return err
+	}
+
 	resp, err := app.Client.Search().Global(sdk.SearchOptions{
 		Query: c.Query,
 		Page:  c.Page,
+		Since: since,
+		Until: until,
 	})
 	if err != nil {
 		return err
@@ -263,4 +276,90 @@ func printArticleRows(app *App, articles []sdk.ArticleSearchResult) {
 func sanitizeCell(s string) string {
 	r := strings.NewReplacer("\n", " ", "\r", " ", "\t", " ")
 	return strings.Join(strings.Fields(r.Replace(s)), " ")
+}
+
+// timeBounds resolves --after/--before/--on into epoch-second bounds passed to
+// the Chatwoot search API (which filters server-side).
+func (c *SearchCmd) timeBounds() (since, until int64, err error) {
+	if c.After == "" && c.Before == "" && c.On == "" {
+		return 0, 0, nil
+	}
+	loc, err := time.LoadLocation(c.TZ)
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid --tz %q: %w", c.TZ, err)
+	}
+	if c.On != "" {
+		if c.After != "" || c.Before != "" {
+			return 0, 0, fmt.Errorf("--on is mutually exclusive with --after/--before")
+		}
+		if since, err = parseSearchTime(c.On, loc, false); err != nil {
+			return 0, 0, err
+		}
+		if until, err = parseSearchTime(c.On, loc, true); err != nil {
+			return 0, 0, err
+		}
+	} else {
+		if c.After != "" {
+			if since, err = parseSearchTime(c.After, loc, false); err != nil {
+				return 0, 0, err
+			}
+		}
+		if c.Before != "" {
+			if until, err = parseSearchTime(c.Before, loc, true); err != nil {
+				return 0, 0, err
+			}
+		}
+	}
+	if since > 0 && until > 0 && since > until {
+		return 0, 0, fmt.Errorf("--after is later than --before")
+	}
+	if cutoff := time.Now().Add(-90 * 24 * time.Hour).Unix(); until > 0 && until < cutoff {
+		_, _ = fmt.Fprintln(os.Stderr, "warning: window is entirely older than ~90 days; Chatwoot search is server-capped to the last ~90 days, results may be empty or widened.")
+	}
+	return since, until, nil
+}
+
+// parseSearchTime converts a CLI date/time string to epoch seconds.
+// Accepts epoch seconds (all digits), RFC3339 (explicit zone), zone-less
+// datetimes interpreted in loc, and bare dates. For a bare date, endOfDay
+// selects 23:59:59 (upper bound) instead of 00:00:00 (lower bound).
+func parseSearchTime(s string, loc *time.Location, endOfDay bool) (int64, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, nil
+	}
+	if isAllDigits(s) {
+		n, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid epoch %q: %w", s, err)
+		}
+		return n, nil
+	}
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t.Unix(), nil
+	}
+	for _, layout := range []string{"2006-01-02T15:04:05", "2006-01-02T15:04", "2006-01-02 15:04:05", "2006-01-02 15:04"} {
+		if t, err := time.ParseInLocation(layout, s, loc); err == nil {
+			return t.Unix(), nil
+		}
+	}
+	if t, err := time.ParseInLocation("2006-01-02", s, loc); err == nil {
+		if endOfDay {
+			t = t.Add(24*time.Hour - time.Second)
+		}
+		return t.Unix(), nil
+	}
+	return 0, fmt.Errorf("could not parse time %q (use 2006-01-02, 2006-01-02T15:04, RFC3339, or epoch seconds)", s)
+}
+
+func isAllDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }

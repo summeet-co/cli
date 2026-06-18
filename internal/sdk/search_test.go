@@ -20,8 +20,10 @@ func TestSearchGlobalSendsQueryParamsAndDecodesAllBuckets(t *testing.T) {
 		}
 		q := r.URL.Query()
 		for key, want := range map[string]string{
-			"q":    "ada",
-			"page": "2",
+			"q":     "ada",
+			"page":  "2",
+			"since": "1700000000",
+			"until": "1700100000",
 		} {
 			if got := q.Get(key); got != want {
 				t.Errorf("query %s = %q, want %q", key, got, want)
@@ -47,7 +49,7 @@ func TestSearchGlobalSendsQueryParamsAndDecodesAllBuckets(t *testing.T) {
 
 	client := NewClient(server.URL, "api-key", 1, WithHTTPClient(server.Client()))
 
-	resp, err := client.Search().Global(SearchOptions{Query: "ada", Page: 2})
+	resp, err := client.Search().Global(SearchOptions{Query: "ada", Page: 2, Since: 1700000000, Until: 1700100000})
 	if err != nil {
 		t.Fatalf("Global returned error: %v", err)
 	}
@@ -70,15 +72,15 @@ func TestSearchGlobalSendsQueryParamsAndDecodesAllBuckets(t *testing.T) {
 	}
 }
 
-// An optional zero page must be omitted so the server applies its own default
-// rather than receiving page=0.
+// Optional params (page/since/until) must be omitted when zero so the server
+// applies its own defaults rather than receiving page=0 or since=0.
 func TestSearchGlobalOmitsZeroValuedParams(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		if q.Get("q") != "ada" {
 			t.Errorf("q = %q, want ada", q.Get("q"))
 		}
-		for _, key := range []string{"page"} {
+		for _, key := range []string{"page", "since", "until"} {
 			if q.Has(key) {
 				t.Errorf("param %s should be omitted, raw query: %s", key, r.URL.RawQuery)
 			}

@@ -12,6 +12,8 @@ type SearchService struct {
 type SearchOptions struct {
 	Query string
 	Page  int
+	Since int64 // epoch seconds; lower bound (inclusive), server-side
+	Until int64 // epoch seconds; upper bound (inclusive), server-side
 }
 
 type SearchResponse struct {
@@ -87,6 +89,17 @@ func (s *SearchService) Global(opts SearchOptions) (*SearchResponse, error) {
 	params.Set("q", opts.Query)
 	if opts.Page > 0 {
 		params.Set("page", strconv.Itoa(opts.Page))
+	}
+	// Date range is filtered server-side by Chatwoot's search service
+	// (since/until, epoch seconds). Conversations/contacts filter on
+	// last_activity_at, messages on created_at, articles on updated_at.
+	// Requires the account's `advanced_search` feature flag; the server
+	// silently clamps the window to the last ~90 days.
+	if opts.Since > 0 {
+		params.Set("since", strconv.FormatInt(opts.Since, 10))
+	}
+	if opts.Until > 0 {
+		params.Set("until", strconv.FormatInt(opts.Until, 10))
 	}
 
 	var resp SearchResponse
